@@ -105,7 +105,36 @@ public class Main {
         jedis.del(key);
         returnProfile = jedis.hgetAll(key);
         System.out.println("returned Profile " + returnProfile);
+    }
 
+    // lpush, rpush, lpop, rpop, lrange, llen
+    private static void testListCommand(RedisClient jedis){
+        String key = "message:svc1";
+        for (int i = 0; i < 5; i++) {
+            jedis.lpush(key, String.valueOf(i));
+        }
+
+        List<String> values = jedis.lrange(key, 0, -1);
+        System.out.println("Values : " + values);
+
+        long lengthOfItems = jedis.llen(key);
+        System.out.println("Length: " + lengthOfItems);
+
+        for (int i = 0; i < 5; i++) {
+            jedis.rpush(key, String.valueOf(10 - i));
+        }
+        lengthOfItems = jedis.llen(key);
+        System.out.println("Length post addition: " + lengthOfItems);
+
+        jedis.lpop(key);
+        lengthOfItems = jedis.llen(key);
+        System.out.println("Length post addition: " + lengthOfItems);
+
+        jedis.rpop(key);
+        lengthOfItems = jedis.llen(key);
+        System.out.println("Length post addition: " + lengthOfItems);
+
+        jedis.del(key);
     }
 
     public static void main(String[] args) {
@@ -115,7 +144,10 @@ public class Main {
 //        testStringCommands(jedis);
 //        testStringMultiCommand(jedis);
 //        testBitCommand(jedis);
-        testHashCommand(jedis);
+//        testHashCommand(jedis);
+        testListCommand(jedis);
+
+
     }
 }
 
