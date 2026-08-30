@@ -1,6 +1,7 @@
 package org.example;
 
 import org.example.config.RedisConnectionManager;
+import org.example.config.RedisScriptManager;
 import redis.clients.jedis.*;
 import redis.clients.jedis.args.GeoUnit;
 import redis.clients.jedis.params.GeoSearchParam;
@@ -10,6 +11,7 @@ import redis.clients.jedis.params.ZRangeParams;
 import redis.clients.jedis.resps.GeoRadiusResponse;
 import redis.clients.jedis.resps.StreamEntry;
 
+import java.io.IOException;
 import java.util.*;
 
 public class Main {
@@ -343,6 +345,32 @@ public class Main {
         jedis.del(accBob);
     }
 
+    private static void testLuaScripting(RedisClient jedis) {
+        // Setup test data
+        String accBob = "account:bob";
+        String accAlice = "account:alice";
+        jedis.set(accBob, "100");
+        jedis.set(accAlice, "100");
+
+        try {
+            RedisScriptManager transferScript = new RedisScriptManager(jedis, "lua/transfer.lua");
+
+            List<String> keys = Arrays.asList(accBob, accAlice);
+            List<String> args = Arrays.asList("50");
+
+            System.out.println("Executing transfer...");
+            Object result = transferScript.execute(keys, args);
+
+            if ((Long) result == 1L) {
+                System.out.println("Transfer successful!");
+            } else {
+                System.out.println("Transfer failed: Insufficient funds.");
+            }
+            System.out.println("Final - Bob: $" + jedis.get(accBob) + ", Alice: $" + jedis.get(accAlice));
+        } catch (IOException e) {
+            System.err.println("Failed to load script file: " + e.getMessage());
+        }
+    }
 
 
     public static void main(String[] args) {
@@ -360,7 +388,8 @@ public class Main {
 //        testGeoCommands(jedis);
 //        testRedisStreams(jedis);
 //        testPipelining(jedis);
-        testTransactions(jedis);
+//        testTransactions(jedis);
+        testLuaScripting(jedis);
     }
 }
 
