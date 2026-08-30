@@ -1,9 +1,7 @@
 package org.example;
 
 import org.example.config.RedisConnectionManager;
-import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.RedisClient;
-import redis.clients.jedis.StreamEntryID;
+import redis.clients.jedis.*;
 import redis.clients.jedis.args.GeoUnit;
 import redis.clients.jedis.params.GeoSearchParam;
 import redis.clients.jedis.params.SetParams;
@@ -320,6 +318,33 @@ public class Main {
         pipeline.sync();
     }
 
+    // transaction, watch
+    private static void testTransactions(RedisClient jedis){
+        String accBob = "account:bob";
+        String accAlice = "account:alice";
+
+        jedis.set(accBob, "100");
+        jedis.set(accAlice, "100");
+        try (AbstractTransaction trans = jedis.transaction(false)) {
+            trans.watch(accBob);
+            trans.multi();
+            trans.decrBy(accBob, 50);
+            trans.incrBy(accAlice, 50);
+
+            List<Object> results = trans.exec();
+            if (results == null) {
+                System.out.println("Transaction Aborted! The watched key was modified.");
+            } else {
+                System.out.println("Transaction Results: " + results);
+            }
+        }
+
+        jedis.del(accBob);
+        jedis.del(accBob);
+    }
+
+
+
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
         System.out.println("Main ping : " + jedis.ping());
@@ -334,7 +359,8 @@ public class Main {
 //        testHyperLogLog(jedis);
 //        testGeoCommands(jedis);
 //        testRedisStreams(jedis);
-        testPipelining(jedis);
+//        testPipelining(jedis);
+        testTransactions(jedis);
     }
 }
 
