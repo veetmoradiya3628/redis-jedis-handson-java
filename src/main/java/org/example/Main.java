@@ -3,16 +3,16 @@ package org.example;
 import org.example.config.RedisConnectionManager;
 import redis.clients.jedis.RedisClient;
 import redis.clients.jedis.Response;
+import redis.clients.jedis.StreamEntryID;
 import redis.clients.jedis.args.GeoUnit;
 import redis.clients.jedis.params.GeoSearchParam;
 import redis.clients.jedis.params.SetParams;
+import redis.clients.jedis.params.XReadGroupParams;
 import redis.clients.jedis.params.ZRangeParams;
 import redis.clients.jedis.resps.GeoRadiusResponse;
+import redis.clients.jedis.resps.StreamEntry;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Main {
 
@@ -242,7 +242,62 @@ public class Main {
         }
 
         // Clean up test data
-//        jedis.del(geoKey);
+        jedis.del(geoKey);
+    }
+
+    private static void testRedisStreams(RedisClient jedis){
+        String streamKey = "app:notifications";
+        String groupName = "notification-workers";
+        String consumerName = "worker-1";
+
+        jedis.del(streamKey);
+
+        System.out.println("1. Initializing Consumer Group...");
+        jedis.xgroupCreate(streamKey, groupName, StreamEntryID.XGROUP_LAST_ENTRY, true);
+
+        System.out.println("2. Publishing events to stream...");
+        Map<String, String> event1 = new HashMap<>();
+        event1.put("type", "EMAIL_WELCOME");
+        event1.put("user_id", "1001");
+        jedis.xadd(streamKey, StreamEntryID.NEW_ENTRY, event1);
+
+        Map<String, String> event2 = new HashMap<>();
+        event2.put("type", "SMS_ALERT");
+        event2.put("user_id", "5050");
+        jedis.xadd(streamKey, StreamEntryID.NEW_ENTRY, event2);
+
+        System.out.println("   -> Messages appended successfully.\n");
+        System.out.println("3. Consumer '" + consumerName + "' checking for work...");
+
+        Map<String, StreamEntryID> streamQuery = Collections.singletonMap(streamKey, StreamEntryID.XREADGROUP_UNDELIVERED_ENTRY);
+        XReadGroupParams readParams = XReadGroupParams.xReadGroupParams()
+                .count(10)      // Fetch up to 10 messages at once
+                .block(2000);   // Block/wait for up to 2 seconds if stream is empty
+
+        List<Map.Entry<String, List<StreamEntry>>> results = jedis.xreadGroup(groupName, consumerName, readParams, streamQuery);
+
+        if (results != null && !results.isEmpty()) {
+            for (Map.Entry<String, List<StreamEntry>> stream : results) {
+                List<StreamEntry> entries = stream.getValue();
+
+                for (StreamEntry entry : entries) {
+                    System.out.println("   [RECEIVED] Message ID: " + entry.getID());
+                    System.out.println("   [PAYLOAD]  " + entry.getFields());
+
+                    // Simulate work...
+                    System.out.println("     -> Processing " + entry.getFields().get("type") + " for user " + entry.getFields().get("user_id"));
+
+                    // XACK removes the message from the consumer's Pending Entries List (PEL)
+                    jedis.xack(streamKey, groupName, entry.getID());
+                    System.out.println("     -> Acknowledged (XACK)\n");
+                }
+            }
+        } else {
+            System.out.println("   No new messages found.");
+        }
+
+        // Cleanup test data
+        jedis.del(streamKey);
     }
 
     public static void main(String[] args) {
@@ -257,7 +312,8 @@ public class Main {
 //        testSetCommand(jedis);
 //        testSortedSetCommand(jedis);
 //        testHyperLogLog(jedis);
-        testGeoCommands(jedis);
+//        testGeoCommands(jedis);
+        testRedisStreams(jedis);
     }
 }
 
