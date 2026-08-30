@@ -1,8 +1,8 @@
 package org.example;
 
 import org.example.config.RedisConnectionManager;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.RedisClient;
-import redis.clients.jedis.Response;
 import redis.clients.jedis.StreamEntryID;
 import redis.clients.jedis.args.GeoUnit;
 import redis.clients.jedis.params.GeoSearchParam;
@@ -300,6 +300,26 @@ public class Main {
         jedis.del(streamKey);
     }
 
+    private static void testPipelining(RedisClient jedis){
+        Map<String, String> mpp = new HashMap<>();
+        for (int i = 1; i <= 20; i++) {
+            mpp.put("Key_" + i, "Value_" + i);
+        }
+
+        Pipeline pipeline = jedis.pipelined();
+
+        for(Map.Entry<String, String> entry: mpp.entrySet()){
+            pipeline.set(entry.getKey(), entry.getValue());
+        }
+
+        pipeline.sync();
+
+        for (String key: mpp.keySet()){
+            pipeline.del(key);
+        }
+        pipeline.sync();
+    }
+
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
         System.out.println("Main ping : " + jedis.ping());
@@ -313,7 +333,8 @@ public class Main {
 //        testSortedSetCommand(jedis);
 //        testHyperLogLog(jedis);
 //        testGeoCommands(jedis);
-        testRedisStreams(jedis);
+//        testRedisStreams(jedis);
+        testPipelining(jedis);
     }
 }
 
