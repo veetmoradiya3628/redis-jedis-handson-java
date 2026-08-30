@@ -2,10 +2,13 @@ package org.example;
 
 import org.example.config.RedisConnectionManager;
 import redis.clients.jedis.RedisClient;
+import redis.clients.jedis.Response;
 import redis.clients.jedis.params.SetParams;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
 
@@ -71,6 +74,40 @@ public class Main {
         System.out.println("Total active users : " + totalActiveUsers);
     }
 
+    // hset, hget, hgetAll
+    private static void testHashCommand(RedisClient jedis){
+        String key = "users:profile:user1";
+        Map<String, String> profileData = new HashMap<>();
+        profileData.put("name", "veet");
+        profileData.put("age", "24");
+        profileData.put("gender", "male");
+
+        long resp1 = jedis.hset(key, profileData);
+        System.out.println("response1 : "+ resp1);
+
+        profileData.put("occupation", "software engineer");
+        long resp2 = jedis.hset(key, profileData);
+        System.out.println("response2 : "+ resp2);
+
+        String returnAge = jedis.hget(key, "age");
+        System.out.println("returned Age " + returnAge);
+
+        String returnUnknown = jedis.hget(key, "unknown_field");
+        System.out.println("returned Unknown " + returnUnknown);
+
+        Map<String, String> returnProfile = jedis.hgetAll(key);
+        System.out.println("returned Profile " + returnProfile);
+
+        jedis.hdel(key, "age");
+        returnProfile = jedis.hgetAll(key);
+        System.out.println("returned Profile " + returnProfile);
+
+        jedis.del(key);
+        returnProfile = jedis.hgetAll(key);
+        System.out.println("returned Profile " + returnProfile);
+
+    }
+
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
         System.out.println("Main ping : " + jedis.ping());
@@ -78,8 +115,7 @@ public class Main {
 //        testStringCommands(jedis);
 //        testStringMultiCommand(jedis);
 //        testBitCommand(jedis);
-
-
+        testHashCommand(jedis);
     }
 }
 
