@@ -137,6 +137,33 @@ public class Main {
         jedis.del(key);
     }
 
+    // sadd, smembers, srem, sismember, scard, sinter, sunion
+    private static void testSetCommand(RedisClient jedis){
+        String key = "tags:article:1";
+        String[] tags = new String[]{"Java", "Programming", "System Engineering", "DevOps", "Java"};
+
+        jedis.sadd(key, tags);
+
+        long sizeOfSet = jedis.scard(key);
+        System.out.println("Items in set : " + sizeOfSet);
+
+        System.out.println("Is Coding part of set : " + jedis.sismember(key, "Coding"));
+        System.out.println("Is Java part of set : " + jedis.sismember(key, "Java"));
+
+        String key2 = "tags:article:2";
+        String[] article2Tags = new String[]{"Java", "Spring boot", "Spring Data JPA", "DevOps"};
+        jedis.sadd(key2, article2Tags);
+
+        System.out.println("Intersection of both articles : " + jedis.sinter(key, key2));
+        System.out.println("Union of both articles : " + jedis.sunion(  key, key2));
+
+        jedis.srem(key, new String[]{"Java", "Coding"});
+        System.out.println("Item in article1 tags : " + jedis.scard(key));
+
+        jedis.del(key);
+        jedis.del(key2);
+    }
+
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
         System.out.println("Main ping : " + jedis.ping());
@@ -145,9 +172,8 @@ public class Main {
 //        testStringMultiCommand(jedis);
 //        testBitCommand(jedis);
 //        testHashCommand(jedis);
-        testListCommand(jedis);
-
-
+//        testListCommand(jedis);
+        testSetCommand(jedis);
     }
 }
 
