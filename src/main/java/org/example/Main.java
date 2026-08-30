@@ -54,8 +54,21 @@ public class Main {
         jedis.del(mgetArgs);
     }
 
-    private static void testBitCommand(RedisClient jedis){
+    private static void testBitCommand(RedisClient jedis) {
+        String key = "active_users:2026-08-30";
 
+        // userId, active/not_active
+        jedis.setbit(key, 1, true);
+        jedis.setbit(key, 2, true);
+        jedis.setbit(key, 1001, true);
+        jedis.setbit(key, 5050, true);
+        jedis.setbit(key, 9999, true);
+
+        System.out.println("Is user 1001 active : " + jedis.getbit(key, 1001));
+        System.out.println("Is user 1002 active : " + jedis.getbit(key, 1002));
+
+        long totalActiveUsers = jedis.bitcount(key);
+        System.out.println("Total active users : " + totalActiveUsers);
     }
 
     public static void main(String[] args) {
@@ -64,6 +77,8 @@ public class Main {
 
 //        testStringCommands(jedis);
 //        testStringMultiCommand(jedis);
+//        testBitCommand(jedis);
+
 
     }
 }
