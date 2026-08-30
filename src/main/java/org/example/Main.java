@@ -4,6 +4,7 @@ import org.example.config.RedisConnectionManager;
 import redis.clients.jedis.RedisClient;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.params.SetParams;
+import redis.clients.jedis.params.ZRangeParams;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -164,6 +165,28 @@ public class Main {
         jedis.del(key2);
     }
 
+    // zadd, zrange, zrevrange (deprecated), zrem, zscore, zcard
+    private static void testSortedSetCommand(RedisClient jedis){
+        String key = "leaderboard";
+
+        jedis.zadd(key, 1000, "player1");
+        jedis.zadd(key, 900, "player2");
+        jedis.zadd(key, 1100, "player3");
+
+        System.out.println("leaderboard : " + jedis.zrange(key, 0, -1));
+        System.out.println("leaderboard reverse order : " + jedis.zrange(key, new ZRangeParams(0, -1).rev()));
+
+        jedis.zadd(key, 800, "player4");
+        System.out.println("leaderboard : " + jedis.zrange(key, 0, -1));
+
+        jedis.zrem(key, "player4");
+        System.out.println("After removing Player4 leaderboard : " + jedis.zrange(key, 0, -1));
+
+        jedis.zrem(key, "player2");
+        System.out.println("After removing Player2 leaderboard : " + jedis.zrange(key, 0, -1));
+
+    }
+
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
         System.out.println("Main ping : " + jedis.ping());
@@ -173,7 +196,8 @@ public class Main {
 //        testBitCommand(jedis);
 //        testHashCommand(jedis);
 //        testListCommand(jedis);
-        testSetCommand(jedis);
+//        testSetCommand(jedis);
+        testSortedSetCommand(jedis);
     }
 }
 
