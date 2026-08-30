@@ -3,8 +3,11 @@ package org.example;
 import org.example.config.RedisConnectionManager;
 import redis.clients.jedis.RedisClient;
 import redis.clients.jedis.Response;
+import redis.clients.jedis.args.GeoUnit;
+import redis.clients.jedis.params.GeoSearchParam;
 import redis.clients.jedis.params.SetParams;
 import redis.clients.jedis.params.ZRangeParams;
+import redis.clients.jedis.resps.GeoRadiusResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -199,6 +202,49 @@ public class Main {
         jedis.del(key);
     }
 
+    private static void testGeoCommands(RedisClient jedis){
+        String geoKey = "bengaluru:landmarks";
+
+        System.out.println("Populating geospatial data...");
+        jedis.geoadd(geoKey, 77.6200, 13.0475, "Manyata Tech Park");
+        jedis.geoadd(geoKey, 77.6223, 13.0454, "Lumbini Gardens");
+        jedis.geoadd(geoKey, 77.5853, 13.0413, "Hebbal Lake");
+        jedis.geoadd(geoKey, 77.5921, 12.9985, "Bangalore Palace");
+        jedis.geoadd(geoKey, 77.6083, 12.9822, "Commercial Street");
+        jedis.geoadd(geoKey, 77.5511, 13.0098, "ISKCON Temple");
+
+        System.out.println("\nSearching for nearby places...");
+
+        GeoSearchParam searchParams = new GeoSearchParam()
+                .fromMember("Manyata Tech Park") // Center of the search
+                .byRadius(15, GeoUnit.KM)        // Search radius (15 kilometers)
+                .withDist()                      // Return distance from center
+                .withCoord()                     // Return the coordinates
+                .asc()                           // Sort nearest to farthest
+                .count(6);                       // Limit results (5 places + Manyata)
+
+        List<GeoRadiusResponse> nearbyPlaces = jedis.geosearch(geoKey, searchParams);
+        System.out.printf("%-20s | %-12s | %s%n", "Location", "Distance", "Coordinates (Lon, Lat)");
+        System.out.println("------------------------------------------------------------------");
+
+        for (GeoRadiusResponse place : nearbyPlaces) {
+            String name = place.getMemberByString();
+            double distance = place.getDistance();
+            double lon = place.getCoordinate().getLongitude();
+            double lat = place.getCoordinate().getLatitude();
+
+            // Skip printing Manyata Tech Park's distance to itself (0.0 km) if desired
+            if (name.equals("Manyata Tech Park")) {
+                System.out.printf("%-20s | %-12s | [%.4f, %.4f] (Origin)%n", name, "0.0000 km", lon, lat);
+            } else {
+                System.out.printf("%-20s | %.4f km    | [%.4f, %.4f]%n", name, distance, lon, lat);
+            }
+        }
+
+        // Clean up test data
+//        jedis.del(geoKey);
+    }
+
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
         System.out.println("Main ping : " + jedis.ping());
@@ -210,7 +256,8 @@ public class Main {
 //        testListCommand(jedis);
 //        testSetCommand(jedis);
 //        testSortedSetCommand(jedis);
-        testHyperLogLog(jedis);
+//        testHyperLogLog(jedis);
+        testGeoCommands(jedis);
     }
 }
 
