@@ -187,6 +187,18 @@ public class Main {
 
     }
 
+    // pfadd, pfcount
+    private static void testHyperLogLog(RedisClient jedis) {
+        String key = "unique_visitors:2026-08-30";
+        List<String> items = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            items.add("user_" + String.valueOf(i));
+        }
+        jedis.pfadd(key, items.toArray(new String[0]));
+        System.out.println("Total users : " + jedis.pfcount(key));
+        jedis.del(key);
+    }
+
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
         System.out.println("Main ping : " + jedis.ping());
@@ -197,7 +209,8 @@ public class Main {
 //        testHashCommand(jedis);
 //        testListCommand(jedis);
 //        testSetCommand(jedis);
-        testSortedSetCommand(jedis);
+//        testSortedSetCommand(jedis);
+        testHyperLogLog(jedis);
     }
 }
 
