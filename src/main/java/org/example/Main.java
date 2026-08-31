@@ -372,6 +372,20 @@ public class Main {
         }
     }
 
+    private static void testBloomFilter(RedisClient jedis){
+        jedis.bfReserve("bf:fraud_ips", 0.01, 1000000);
+
+        jedis.bfAdd("bf:fraud_ips", "192.168.1.1");
+        System.out.println("is 10.0.0.1 exists : " + jedis.bfExists("bf:fraud_ips", "10.0.0.1"));
+        System.out.println("is 192.168.1.1 exists : " + jedis.bfExists("bf:fraud_ips", "192.168.1.1"));
+    }
+
+    private static void testTopK(RedisClient jedis){
+        jedis.topkReserve("topk:trending_hashtags", 10, 2000, 7, 0.9);
+
+        jedis.topkAdd("topk:trending_hashtags", "redis", "java", "redis", "jedis");
+        System.out.println(jedis.topkList("topk:trending_hashtags"));
+    }
 
     public static void main(String[] args) {
         RedisClient jedis = RedisConnectionManager.getClient();
@@ -389,7 +403,9 @@ public class Main {
 //        testRedisStreams(jedis);
 //        testPipelining(jedis);
 //        testTransactions(jedis);
-        testLuaScripting(jedis);
+//        testLuaScripting(jedis);
+//        testBloomFilter(jedis);
+        testTopK(jedis);
     }
 }
 
